@@ -27,23 +27,30 @@ import Data.Either
 someFunc :: IO ()
 someFunc = do
   putStrLn "Let's try a GitHubCall"
-  (rName:_) <- getArgs
+  (rName:rep:_) <- getArgs
   putStrLn $ "name is " ++ rName
-
-  testGitHubCall $ pack rName
+  putStrLn $ "repo is " ++ rep
+  let n = pack rName
+  testGitHubCall n $ pack rep
   putStrLn "end."
 
 
-testGitHubCall :: Text -> IO ()
-testGitHubCall name =
+testGitHubCall :: Text -> Text -> IO ()
+testGitHubCall name rep  =
   (SC.runClientM (GH.getUser (Just "haskell-app") name) =<< env) >>= \case
 
-    Left err -> do
+     Left err -> do
       putStrLn $ "heuston, we have a problem: " ++ show err
-    Right res -> do
+     Right res -> do
       putStrLn $ "the votes of the github jury are " ++ show res
 
-    
+      (SC.runClientM (GH.getRepo  (Just "haskell-app") name rep) =<< env) >>= \case
+        Left err -> do
+           putStrLn $ "heuston, we have a problem: " ++ show err
+        Right res' -> do
+           putStrLn $ "the votes of the github jury are " ++ show res'
+
+
 
 
 

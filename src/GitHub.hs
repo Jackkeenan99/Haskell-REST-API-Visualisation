@@ -20,6 +20,7 @@ type Username  = Text
 type UserAgent = Text
 type Reponame  = Text
 
+
 data GitHubUser =
   GitHubUser { name  :: Text
              , followers :: Int
@@ -27,8 +28,16 @@ data GitHubUser =
              } deriving (Generic, FromJSON, Show)
 
 
+data GitHubTopics =
+   GitHubTopics { subscribers_count :: Int
+                } deriving (Generic, FromJSON, Show)
+
+
+
 type GitHubAPI = "users" :> Header  "user-agent" UserAgent
                          :> Capture "username" Username  :> Get '[JSON] GitHubUser
+            :<|> "repos" :> Header  "user-agent" UserAgent
+                         :> Capture "owner" Username  :> Capture "repo" Reponame :> Get '[JSON] GitHubTopics
 
 
 
@@ -36,6 +45,7 @@ gitHubAPI :: Proxy GitHubAPI
 gitHubAPI = Proxy
 
 getUser :: Maybe UserAgent -> Username -> ClientM GitHubUser
+getRepo :: Maybe UserAgent -> Username -> Reponame -> ClientM GitHubTopics
 
 
-getUser  = client gitHubAPI
+getUser :<|> getRepo = client gitHubAPI
