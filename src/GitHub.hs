@@ -39,22 +39,41 @@ data GitHub     =
                 } deriving (Generic, FromJSON, Show)
 
 
+data GitHubCommit =
+      GitHubCommit {  w :: Maybe Text
+                    , a :: Maybe Int
+                    , d :: Maybe Int
+                    , c :: Maybe Int
+                    } deriving (Generic, FromJSON, Show)
+
+
+
+
+
 
 type GitHubAPI = "users" :> Header  "user-agent" UserAgent
+                         :> BasicAuth "github" Int
                          :> Capture "username" Username  :> Get '[JSON] GitHubUser
             :<|> "users" :> Header  "user-agent" UserAgent
+                         :> BasicAuth "github" Int
                          :> Capture "username" Username  :> "repos" :>  Get '[JSON] [GitHub]
             :<|> "repos" :> Header  "user-agent" UserAgent
+                         :> BasicAuth "github" Int
                          :> Capture "owner" Username  :> Capture "repo" Reponame :> Get '[JSON] GitHubTopics
+            :<|> "repos" :> Header  "user-agent" UserAgent
+                         :> BasicAuth "github" Int
+                         :> Capture "owner" Username
+                         :> Capture "repo" Reponame :> "stats" :> "contributors" :> Get '[JSON] [GitHubCommit]
 
 
 
 gitHubAPI :: Proxy GitHubAPI
 gitHubAPI = Proxy
 
-getUser :: Maybe UserAgent -> Username -> ClientM GitHubUser
-getR    :: Maybe UserAgent -> Username -> ClientM [GitHub]
-getRepo :: Maybe UserAgent -> Username -> Reponame -> ClientM GitHubTopics
+getUser :: Maybe UserAgent -> BasicAuthData -> Username -> ClientM GitHubUser
+getR    :: Maybe UserAgent -> BasicAuthData -> Username -> ClientM [GitHub]
+getRepo :: Maybe UserAgent -> BasicAuthData -> Username -> Reponame -> ClientM GitHubTopics
+getCommits :: Maybe UserAgent -> BasicAuthData -> Username -> Reponame -> ClientM [GitHubCommit]
 
 
-getUser :<|> getR :<|> getRepo = client gitHubAPI
+getUser :<|> getR :<|> getRepo :<|> getCommits = client gitHubAPI
