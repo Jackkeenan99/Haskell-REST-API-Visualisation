@@ -30,12 +30,20 @@ data GitHubUser =
 
 data GitHubTopics =
    GitHubTopics { subscribers_count :: Int
+                  ,size :: Int
+                  ,watchers_count :: Int
+                } deriving (Generic, FromJSON, Show)
+
+data GitHub     =
+      GitHub     { name  :: Text
                 } deriving (Generic, FromJSON, Show)
 
 
 
 type GitHubAPI = "users" :> Header  "user-agent" UserAgent
                          :> Capture "username" Username  :> Get '[JSON] GitHubUser
+            :<|> "users" :> Header  "user-agent" UserAgent
+                         :> Capture "username" Username  :> "repos" :>  Get '[JSON] [GitHub]
             :<|> "repos" :> Header  "user-agent" UserAgent
                          :> Capture "owner" Username  :> Capture "repo" Reponame :> Get '[JSON] GitHubTopics
 
@@ -45,7 +53,8 @@ gitHubAPI :: Proxy GitHubAPI
 gitHubAPI = Proxy
 
 getUser :: Maybe UserAgent -> Username -> ClientM GitHubUser
+getR    :: Maybe UserAgent -> Username -> ClientM [GitHub]
 getRepo :: Maybe UserAgent -> Username -> Reponame -> ClientM GitHubTopics
 
 
-getUser :<|> getRepo = client gitHubAPI
+getUser :<|> getR :<|> getRepo = client gitHubAPI

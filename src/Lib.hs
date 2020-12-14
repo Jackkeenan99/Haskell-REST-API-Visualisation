@@ -42,13 +42,21 @@ testGitHubCall name rep  =
      Left err -> do
       putStrLn $ "heuston, we have a problem: " ++ show err
      Right res -> do
-      putStrLn $ "the votes of the github jury are " ++ show res
+      putStrLn $ "User details->  " ++ show res
+      (SC.runClientM (GH.getR (Just "haskell-app") name) =<< env) >>= \case
 
-      (SC.runClientM (GH.getRepo  (Just "haskell-app") name rep) =<< env) >>= \case
-        Left err -> do
-           putStrLn $ "heuston, we have a problem: " ++ show err
-        Right res' -> do
-           putStrLn $ "the votes of the github jury are " ++ show res'
+         Left err -> do
+          putStrLn $ "heuston, we have a problem: " ++ show err
+         Right rees -> do
+          putStrLn $ "List of Repositories->  " ++
+            intercalate ", " (map (\(GH.GitHub name) -> unpack name) rees)
+
+
+          (SC.runClientM (GH.getRepo  (Just "haskell-app") name rep) =<< env) >>= \case
+            Left err -> do
+             putStrLn $ "heuston, we have a problem: " ++ show err
+            Right res' -> do
+              putStrLn $ "Repo details-> " ++ show res'
 
 
 
