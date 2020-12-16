@@ -50,20 +50,31 @@ testGitHubCall auth name =
      Right res -> do
       putStrLn $ "User details->  " ++ show res
       (SC.runClientM (GH.getR (Just "haskell-app") auth name) =<< env) >>= \case
-
          Left err -> do
           putStrLn $ "ERROR: " ++ show err
          Right rees -> do
           putStrLn $ "List of Repositories->  " ++
-             intercalate ", " (map (\(GH.GitHub repo) -> unpack repo) rees)
+             intercalate "\n " (map (\(GH.GitHubRepo repo) -> unpack repo) rees)
 
 
 
-        --  (partitionEithers <$> mapM (getCommits auth name) rees) >>= \case
 
-          -- ([], contribs) -> putStrLn $ " contributors are: " ++ show contribs
-           --(ers, _)-> do
-            --  putStrLn $ "heuston, we have a problem (getting contributors):" ++ show ers
+        --  (SC.runClientM (GH.getRepoInfo (Just "haskell-app") auth name "emacs.d")=<< env) >>= \case
+
+          --  Left err -> do
+            -- putStrLn $ "ERROR: " ++ show err
+            --Right r -> do
+             --putStrLn $ "List of Repositories->  " ++ show r
+
+
+
+
+          (partitionEithers <$> mapM (getCommits auth name) rees) >>= \case
+
+            ([], contribs) -> putStrLn $ " contributors are: " ++ show contribs
+
+            (ers, _)-> do
+               putStrLn $ "heuston, we have a problem (getting contributors):" ++ show ers
 
 
 
@@ -84,5 +95,5 @@ testGitHubCall auth name =
           manager <- newManager tlsManagerSettings
           return $ SC.mkClientEnv manager (SC.BaseUrl SC.Http "api.github.com" 80 "")
 
-        getCommits:: BasicAuthData -> GH.Username -> GH.GitHub -> IO (Either SC.ClientError [GH.GitHubCommit])
-        getCommits auth name (GH.GitHub repo) = SC.runClientM (GH.getCommits (Just "haskell-app") auth name repo) =<< env
+        getCommits:: BasicAuthData -> GH.Username -> GH.GitHubRepo -> IO (Either SC.ClientError GH.GitHubRepoInfo)
+        getCommits auth name (GH.GitHubRepo repo) = SC.runClientM (GH.getRepoInfo (Just "haskell-app") auth name repo) =<< env
