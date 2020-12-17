@@ -42,33 +42,35 @@ someFunc = do
 
 
 
-
 testGitHubCall :: BasicAuthData -> Text -> IO ()
 testGitHubCall auth name =
   (SC.runClientM (GH.getUser (Just "haskell-app") auth name) =<< env) >>= \case
 
      Left err -> do
-      putStrLn $ "ERROR: " ++ show err
+      putStrLn $ "Error getting user  " ++ show err
      Right res ->  do
       putStrLn $ "\nUser details->  " ++ show res
 
-      (SC.runClientM (GH.getR (Just "haskell-app") auth name) =<< env) >>= \case
+
+
+      (SC.runClientM (GH.getRepos (Just "haskell-app") auth name) =<< env) >>= \case
          Left err -> do
-          putStrLn $ "ERROR: " ++ show err
+          putStrLn $ "Error getting user repos " ++ show err
          Right rees -> do
           putStrLn $ "\nList of Repositories->  " ++
              intercalate ", " (map (\(GH.GitHubRepo repo) -> unpack repo) rees)
 
-          (partitionEithers <$> mapM (getInfo auth name) rees) >>= \case
 
+
+          (partitionEithers <$> mapM (getInfo auth name) rees) >>= \case
             ([], contribs) -> putStrLn $ " \nGitHub Repo Info:\n" ++
              intercalate "\n"  (map (\(GH.GitHubRepoInfo r n c d l f) ->
              show r ++ " subscribers:" ++  show n ++ " watchers:"
               ++ show c ++ " size:" ++ show d ++ " open issues:" ++ show l
               ++ " forks:" ++ show f) contribs)
-
             (ers, _)-> do
-               putStrLn $ "heuston, we have a problem (getting contributors):" ++ show ers
+               putStrLn $ "Error getting repository information" ++ show ers
+
 
 
           (partitionEithers <$> mapM (getContributors auth name) rees) >>= \case
@@ -78,10 +80,9 @@ testGitHubCall auth name =
                                       ([], contribs) -> putStrLn $ "\n\n" ++ intercalate "\n"
                                                           (map (\(GH.GitHubUser n fl fg r) -> show n ++ " Followers:"
                                                             ++ show fl ++ " Following:" ++ show fg ++ " Repos" ++ show r) contribs)
-
-                                      (ers, _)-> do putStrLn $ "heuston" ++ show ers
+                                      (ers, _)-> do putStrLn $ "Error getting contributer profile information  " ++ show ers
               (ers, _)-> do
-                 putStrLn $ "heuston, we have a problem (getting contributors):" ++ show ers
+                 putStrLn $ "Error getting contributers:" ++ show ers
 
 
 
@@ -89,6 +90,7 @@ testGitHubCall auth name =
         env = do
           manager <- newManager tlsManagerSettings
           return $ SC.mkClientEnv manager (SC.BaseUrl SC.Http "api.github.com" 80 "")
+
 
         getInfo:: BasicAuthData -> GH.Username -> GH.GitHubRepo -> IO (Either SC.ClientError GH.GitHubRepoInfo)
         getInfo auth name (GH.GitHubRepo repo) = SC.runClientM (GH.getRepoInfo (Just "haskell-app") auth name repo) =<< env
@@ -100,6 +102,7 @@ testGitHubCall auth name =
 
         getRepoUsers:: BasicAuthData -> GH.ContributerLogin -> IO (Either SC.ClientError GH.GitHubUser)
         getRepoUsers auth (GH.ContributerLogin n _) = SC.runClientM (GH.getUser (Just "haskell-app") auth n) =<< env
+
 
         groupContributors :: [GH.ContributerLogin] -> [GH.ContributerLogin]
         groupContributors  = sortBy (\(GH.ContributerLogin _ c1) (GH.ContributerLogin _ c2) -> compare c1 c2) .

@@ -32,12 +32,6 @@ data GitHubUser =
              } deriving (Generic, FromJSON, Show)
 
 
-data GitHubTopics =
-   GitHubTopics { subscribers_count :: Int
-                  ,size :: Int
-                  ,watchers_count :: Int
-                } deriving (Generic, FromJSON, Show)
-
 data GitHubRepo     =
       GitHubRepo     { name  :: Text
                     } deriving (Generic, FromJSON, Show)
@@ -62,20 +56,12 @@ data ContributerLogin =
 
 
 
-
-
-
-
-
 type GitHubAPI = "users" :> Header  "user-agent" UserAgent
                          :> BasicAuth "github" Int
                          :> Capture "username" Username  :> Get '[JSON] GitHubUser
             :<|> "users" :> Header  "user-agent" UserAgent
                          :> BasicAuth "github" Int
                          :> Capture "username" Username  :> "repos" :>  Get '[JSON] [GitHubRepo]
-            :<|> "repos" :> Header  "user-agent" UserAgent
-                         :> BasicAuth "github" Int
-                         :> Capture "owner" Username  :> Capture "repo" Reponame :> Get '[JSON] GitHubTopics
             :<|> "repos" :> Header  "user-agent" UserAgent
                          :> BasicAuth "github" Int
                          :> Capture "owner" Username
@@ -86,7 +72,7 @@ type GitHubAPI = "users" :> Header  "user-agent" UserAgent
                          :> Capture "repo" Reponame :> "contributors" :> Get '[JSON] [ContributerLogin]
             :<|> "users" :> Header  "user-agent" UserAgent
                          :> BasicAuth "github" Int
-                         :> Capture "username" Username  :> Get '[JSON] [GitHubUser]
+                         :> Capture "username" Username  :> Get '[JSON] [GitHubUser]  -- second user call for getting contributers info
 
 
 
@@ -94,12 +80,11 @@ gitHubAPI :: Proxy GitHubAPI
 gitHubAPI = Proxy
 
 getUser :: Maybe UserAgent -> BasicAuthData -> Username -> ClientM GitHubUser
-getR    :: Maybe UserAgent -> BasicAuthData -> Username -> ClientM [GitHubRepo]
-getRepo :: Maybe UserAgent -> BasicAuthData -> Username -> Reponame -> ClientM GitHubTopics
+getRepos    :: Maybe UserAgent -> BasicAuthData -> Username -> ClientM [GitHubRepo]
 getRepoInfo :: Maybe UserAgent -> BasicAuthData -> Username -> Reponame -> ClientM GitHubRepoInfo
 getContributors :: Maybe UserAgent -> BasicAuthData -> Username -> Reponame -> ClientM [ContributerLogin]
 getContributorsDetails :: Maybe UserAgent -> BasicAuthData -> Username -> ClientM [GitHubUser]
 
 
 
-getUser :<|> getR :<|> getRepo :<|> getRepoInfo :<|> getContributors :<|> getContributorsDetails = client gitHubAPI
+getUser :<|> getRepos  :<|> getRepoInfo :<|> getContributors :<|> getContributorsDetails = client gitHubAPI
