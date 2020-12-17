@@ -73,14 +73,11 @@ testGitHubCall auth name =
 
           (partitionEithers <$> mapM (getContributors auth name) rees) >>= \case
               ([], contribss) -> do putStrLn $ "\n\n"  ++  intercalate "\n"  (map (\(GH.ContributerLogin l c)
-                                      -> show l ++ " Commits:" ++ show c) $ concat contribss)
-                                    (partitionEithers <$> (mapM (getRepoUsers auth) $ concat contribss)) >>= \case
-
-                                      ([], contribs) -> putStrLn $ "harrty\n\n" ++ intercalate "\n"
-                                                          (map (\(GH.GitHubUser (Just n) fl fg r) -> show n ++ " Followers:"
-                                                              ++ show fl ++ " Following:" ++ show fg ++ " Repos" ++ show r) contribs)
-
-
+                                      -> show l ++ " Commits:" ++ show c) . groupContributors $ concat contribss)
+                                    (partitionEithers <$> (mapM (getRepoUsers auth) . groupContributors $ concat contribss)) >>= \case
+                                      ([], contribs) -> putStrLn $ "\n\n" ++ intercalate "\n"
+                                                          (map (\(GH.GitHubUser n fl fg r) -> show n ++ " Followers:"
+                                                            ++ show fl ++ " Following:" ++ show fg ++ " Repos" ++ show r) contribs)
 
                                       (ers, _)-> do putStrLn $ "heuston" ++ show ers
               (ers, _)-> do
@@ -103,3 +100,12 @@ testGitHubCall auth name =
 
         getRepoUsers:: BasicAuthData -> GH.ContributerLogin -> IO (Either SC.ClientError GH.GitHubUser)
         getRepoUsers auth (GH.ContributerLogin n _) = SC.runClientM (GH.getUser (Just "haskell-app") auth n) =<< env
+
+        groupContributors :: [GH.ContributerLogin] -> [GH.ContributerLogin]
+        groupContributors  = sortBy (\(GH.ContributerLogin _ c1) (GH.ContributerLogin _ c2) -> compare c1 c2) .
+                             map mapfn .
+                             groupBy (\(GH.ContributerLogin l1 _) (GH.ContributerLogin l2 _) -> l1 == l2)
+         where mapfn :: [GH.ContributerLogin] -> GH.ContributerLogin
+
+               mapfn xs@((GH.ContributerLogin l _):_) = GH.ContributerLogin l .sum $
+                                                       map (\(GH.ContributerLogin _ c) -> c)  xs
