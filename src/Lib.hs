@@ -57,7 +57,7 @@ testGitHubCall auth name =
           putStrLn $ "ERROR: " ++ show err
          Right rees -> do
           putStrLn $ "\nList of Repositories->  " ++
-             intercalate "," (map (\(GH.GitHubRepo repo) -> unpack repo) rees)
+             intercalate ", " (map (\(GH.GitHubRepo repo) -> unpack repo) rees)
 
           (partitionEithers <$> mapM (getInfo auth name) rees) >>= \case
 
@@ -72,13 +72,19 @@ testGitHubCall auth name =
 
 
           (partitionEithers <$> mapM (getContributors auth name) rees) >>= \case
-              ([], contribs) -> putStrLn $ "\n\n"  ++  intercalate "\n"  (map (\(GH.ContributerLogin l c)
-               -> show l ++ " " ++ show c) $ concat contribs)
+              ([], contribss) -> do putStrLn $ "\n\n"  ++  intercalate "\n"  (map (\(GH.ContributerLogin l c)
+                                      -> show l ++ " Commits:" ++ show c) $ concat contribss)
+                                    (partitionEithers <$> (mapM (getRepoUsers auth) $ concat contribss)) >>= \case
+
+                                      ([], contribs) -> putStrLn $ "harrty\n\n" ++ intercalate "\n"
+                                                          (map (\(GH.GitHubUser (Just n) fl fg r) -> show n ++ " Followers:"
+                                                              ++ show fl ++ " Following:" ++ show fg ++ " Repos" ++ show r) contribs)
 
 
+
+                                      (ers, _)-> do putStrLn $ "heuston" ++ show ers
               (ers, _)-> do
                  putStrLn $ "heuston, we have a problem (getting contributors):" ++ show ers
-
 
 
 
@@ -95,4 +101,5 @@ testGitHubCall auth name =
         getContributors auth name (GH.GitHubRepo repo) = SC.runClientM (GH.getContributors (Just "haskell-app") auth name repo) =<< env
 
 
-        --getRepoUsers:: BasicAuthData -> GH.Username -> GH.GitHubRepo -> IO (Either SC.ClientError GH.GitHubUser)
+        getRepoUsers:: BasicAuthData -> GH.ContributerLogin -> IO (Either SC.ClientError GH.GitHubUser)
+        getRepoUsers auth (GH.ContributerLogin n _) = SC.runClientM (GH.getUser (Just "haskell-app") auth n) =<< env

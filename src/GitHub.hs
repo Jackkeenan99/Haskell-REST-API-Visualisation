@@ -25,9 +25,9 @@ type Reponame  = Text
 
 
 data GitHubUser =
-  GitHubUser { name  :: Text
+  GitHubUser { name  :: Maybe Text
              , followers :: Int
-             , following :: Int
+             , following ::  Int
              , public_repos :: Int
              } deriving (Generic, FromJSON, Show)
 
@@ -84,6 +84,9 @@ type GitHubAPI = "users" :> Header  "user-agent" UserAgent
                          :> BasicAuth "github" Int
                          :> Capture "owner" Username
                          :> Capture "repo" Reponame :> "contributors" :> Get '[JSON] [ContributerLogin]
+            :<|> "users" :> Header  "user-agent" UserAgent
+                         :> BasicAuth "github" Int
+                         :> Capture "username" Username  :> Get '[JSON] [GitHubUser]
 
 
 
@@ -95,6 +98,8 @@ getR    :: Maybe UserAgent -> BasicAuthData -> Username -> ClientM [GitHubRepo]
 getRepo :: Maybe UserAgent -> BasicAuthData -> Username -> Reponame -> ClientM GitHubTopics
 getRepoInfo :: Maybe UserAgent -> BasicAuthData -> Username -> Reponame -> ClientM GitHubRepoInfo
 getContributors :: Maybe UserAgent -> BasicAuthData -> Username -> Reponame -> ClientM [ContributerLogin]
+getContributorsDetails :: Maybe UserAgent -> BasicAuthData -> Username -> ClientM [GitHubUser]
 
 
-getUser :<|> getR :<|> getRepo :<|> getRepoInfo :<|> getContributors = client gitHubAPI
+
+getUser :<|> getR :<|> getRepo :<|> getRepoInfo :<|> getContributors :<|> getContributorsDetails = client gitHubAPI
