@@ -41,51 +41,43 @@ someFunc = do
   putStrLn "end."
 
 
+
+
 testGitHubCall :: BasicAuthData -> Text -> IO ()
 testGitHubCall auth name =
   (SC.runClientM (GH.getUser (Just "haskell-app") auth name) =<< env) >>= \case
 
      Left err -> do
       putStrLn $ "ERROR: " ++ show err
-     Right res -> do
-      putStrLn $ "User details->  " ++ show res
+     Right res ->  do
+      putStrLn $ "\nUser details->  " ++ show res
+
       (SC.runClientM (GH.getR (Just "haskell-app") auth name) =<< env) >>= \case
          Left err -> do
           putStrLn $ "ERROR: " ++ show err
          Right rees -> do
-          putStrLn $ "List of Repositories->  " ++
-             intercalate "\n " (map (\(GH.GitHubRepo repo) -> unpack repo) rees)
+          putStrLn $ "\nList of Repositories->  " ++
+             intercalate "," (map (\(GH.GitHubRepo repo) -> unpack repo) rees)
 
+          (partitionEithers <$> mapM (getInfo auth name) rees) >>= \case
 
-
-
-        --  (SC.runClientM (GH.getRepoInfo (Just "haskell-app") auth name "emacs.d")=<< env) >>= \case
-
-          --  Left err -> do
-            -- putStrLn $ "ERROR: " ++ show err
-            --Right r -> do
-             --putStrLn $ "List of Repositories->  " ++ show r
-
-
-
-
-          (partitionEithers <$> mapM (getCommits auth name) rees) >>= \case
-
-            ([], contribs) -> putStrLn $ " contributors are: " ++ show contribs
+            ([], contribs) -> putStrLn $ " \nGitHub Repo Info:\n" ++
+             intercalate "\n"  (map (\(GH.GitHubRepoInfo r n c d l f) ->
+             show r ++ " subscribers:" ++  show n ++ " watchers:"
+              ++ show c ++ " size:" ++ show d ++ " open issues:" ++ show l
+              ++ " forks:" ++ show f) contribs)
 
             (ers, _)-> do
                putStrLn $ "heuston, we have a problem (getting contributors):" ++ show ers
 
 
+          (partitionEithers <$> mapM (getContributors auth name) rees) >>= \case
+              ([], contribs) -> putStrLn $ "\n\n"  ++  intercalate "\n"  (map (\(GH.ContributerLogin l c)
+               -> show l ++ " " ++ show c) $ concat contribs)
 
 
-
-        --  (SC.runClientM (GH.getRepo  (Just "haskell-app") name rep) =<< env) >>= \case
-          --  Left err -> do
-            -- putStrLn $ "ERROR: " ++ show err
-            --Right res' -> do
-            --  putStrLn $ "Repo details-> " ++ show res'
-
+              (ers, _)-> do
+                 putStrLn $ "heuston, we have a problem (getting contributors):" ++ show ers
 
 
 
@@ -95,5 +87,12 @@ testGitHubCall auth name =
           manager <- newManager tlsManagerSettings
           return $ SC.mkClientEnv manager (SC.BaseUrl SC.Http "api.github.com" 80 "")
 
-        getCommits:: BasicAuthData -> GH.Username -> GH.GitHubRepo -> IO (Either SC.ClientError GH.GitHubRepoInfo)
-        getCommits auth name (GH.GitHubRepo repo) = SC.runClientM (GH.getRepoInfo (Just "haskell-app") auth name repo) =<< env
+        getInfo:: BasicAuthData -> GH.Username -> GH.GitHubRepo -> IO (Either SC.ClientError GH.GitHubRepoInfo)
+        getInfo auth name (GH.GitHubRepo repo) = SC.runClientM (GH.getRepoInfo (Just "haskell-app") auth name repo) =<< env
+
+
+        getContributors:: BasicAuthData -> GH.Username -> GH.GitHubRepo -> IO (Either SC.ClientError [GH.ContributerLogin])
+        getContributors auth name (GH.GitHubRepo repo) = SC.runClientM (GH.getContributors (Just "haskell-app") auth name repo) =<< env
+
+
+        --getRepoUsers:: BasicAuthData -> GH.Username -> GH.GitHubRepo -> IO (Either SC.ClientError GH.GitHubUser)
